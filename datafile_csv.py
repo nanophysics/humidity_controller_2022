@@ -11,15 +11,15 @@ from typing import Dict
 class Csv:
     def __init__(self, filename: pathlib.Path):
         assert isinstance(filename, pathlib.Path)
-        self.time: int = 0
+        self.time_s: int = 0
         self.fan: float = 0.0
         self.set_humi_pRH: float = 0.0
         self.humi_humi_pRH: float = 0.0
         self.stage_humi_pRH: float = 0.0
         self.humi_temp_C: float = 0.0
         self.stage_temp_C: float = 0.0
-        self._names = ["time", "fan", "set_humi_pRH", "humi_humi_pRH", "stage_humi_pRH", "humi_temp_C", "stage_temp_C"]
-        self._formats = {"time": '5d', "fan": "3.0f", "set_humi_pRH": "2.1f", "stage_humi_pRH": "2.1f", "humi_temp_C": "2.1f", "stage_temp_C": "2.1f"}
+        self._names = ["time_s", "fan", "set_humi_pRH", "humi_humi_pRH", "stage_humi_pRH", "humi_temp_C", "stage_temp_C"]
+        self._formats = {"time_s": '5d', "fan": "3.0f", "set_humi_pRH": "3.1f", "stage_humi_pRH": "3.1f", "humi_temp_C": "3.1f", "stage_temp_C": "3.1f"}
         self._f = filename.open('w', newline="")
         self._writer = csv.DictWriter(
             self._f, fieldnames=self._names, delimiter="\t")

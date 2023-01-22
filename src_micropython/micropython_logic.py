@@ -8,15 +8,18 @@ import pwm
 real_setup = False
 
 def pyboard_init():
-    x = 4
+    if real_setup:
+        neo_led.np.fill((0,0,0))
+        neo_led.np.write()
 
-def get_status():
-    return 42
+def leds(color=(0,0,0)):
+    if real_setup:
+        neo_led.np.fill(color)
+        neo_led.np.write()
 
-def get_measurement():
-
+def get_measurement(average_n = 1):
     if real_setup == True:
-        sht31.sensors.measure()
+        sht31.sensors.measure(average_n = average_n)
         dict = {
             'humi_temp_C': sht31.sensors.temperature_C_a,
             'humi_humi_pRH': sht31.sensors.humidity_percent_a,
@@ -34,10 +37,6 @@ def get_measurement():
 
 def set_fan_intensity(value):
     if real_setup:
-        pwm.fans.set_intensity(value)
-    else:
-        factor = 2.0
-        if real_setup == False:
-            factor = 3.0
-        return value*factor
+        pwm.fans.set_intensity(value/100.0)
+
 

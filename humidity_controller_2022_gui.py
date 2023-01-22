@@ -45,13 +45,14 @@ class Pico:
         self.shell.sync_folder(DIRECTORY_OF_THIS_FILE / "src_micropython")
         # Start the program
         self.fe.exec_("import micropython_logic")
+        self.pyboard_init()
 
     def get_status(self) -> str:
         str_status = self.fe.eval("micropython_logic.get_status()")
         return str_status
 
-    def get_measurement(self) -> dict:
-        humidityRH = self.fe.eval("micropython_logic.get_measurement()")
+    def get_measurement(self, average_n = 1) -> dict:
+        humidityRH = self.fe.eval(f"micropython_logic.get_measurement(average_n = {average_n:d})")
         return eval(humidityRH)
 
     def set_fan_intensity(self, intensity_K: float) -> None:
@@ -61,6 +62,15 @@ class Pico:
         )
         #value = float(str_value)
         # return value
+    def pyboard_init(self) -> None:
+        pass
+
+    def leds(self,color=(0,0,0)) -> None:
+        d=[]
+        for i in color:
+            d.append(str(i))
+        tuple_str = ','.join(d)
+        self.fe.eval(f"micropython_logic.leds(color=({tuple_str:s}))")
 
 
 class Entry:
@@ -175,7 +185,7 @@ class Controller:
         self._window.entry_kd.value = 0.0
 
         self.pid = simple_pid.PID(sample_time=0.6, output_limits=(
-            0.0, 100.0), proportional_on_measurement=False)
+            0.0, 100.0), proportional_on_measurement=False, setpoint = self._window.entry_setRH.value)
 
         # Start the controller
         window.timer(interval_ms=1000, callback=self._control)
@@ -184,7 +194,7 @@ class Controller:
         # print(self._window.entry_kd.get())
         #value = self._pico.set_fan_intensity(2.1)
         #print(f"Control 2.1->{value}")
-        self._csv.time=int(time.time() - self._starttime)
+        self._csv.time_s=int(time.time() - self._starttime)
         _dict = self._pico.get_measurement()
         self._csv.fan=self.fan_intensity
         self._csv.set_humi_pRH=self.pid.setpoint
@@ -200,6 +210,7 @@ class Controller:
             #self.pid.set_auto_mode(False)
             self.fan_intensity=0.0
             self._pico.set_fan_intensity(0.0)
+            self._pico.leds(color=(255,0,0))
         else:
             #self.pid.set_auto_mode(True, last_output=0.0)
             self.fan_intensity = self.pid(self._csv.humi_humi_pRH)
@@ -209,16 +220,17 @@ class Controller:
             #print(self.pid(44.3))
             #print(self._csv.humi_humi_pRH)
             self._pico.set_fan_intensity(self.fan_intensity)
+            self._pico.leds(color=(0,255,0))
 
 
     def _button_pressed_controller(self, on: bool):
         print(f"vent {on}")
         enabled = not on
+        self._window.entry_setRH.enabled = enabled
+        self._window.entry_kd.enabled = enabled
+        self._window.entry_ki.enabled = enabled
+        self._window.entry_kp.enabled = enabled
         if on:
-            self._window.entry_setRH.enabled = enabled
-            self._window.entry_kd.enabled = enabled
-            self._window.entry_ki.enabled = enabled
-            self._window.entry_kp.enabled = enabled
             self.pid.Kp=self._window.entry_kp.value
             self.pid.Ki=self._window.entry_ki.value
             self.pid.Kd=self._window.entry_kd.value
