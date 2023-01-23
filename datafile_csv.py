@@ -19,7 +19,7 @@ class Csv:
         self.humi_temp_C: float = 0.0
         self.stage_temp_C: float = 0.0
         self._names = ["time_s", "fan", "set_humi_pRH", "humi_humi_pRH", "stage_humi_pRH", "humi_temp_C", "stage_temp_C"]
-        self._formats = {"time_s": '5d', "fan": "3.0f", "set_humi_pRH": "3.1f", "stage_humi_pRH": "3.1f", "humi_temp_C": "3.1f", "stage_temp_C": "3.1f"}
+        self._formats = {"time_s": '5d', "fan": "3.0f", "set_humi_pRH": "3.1f", "humi_humi_pRH": "3.1f", "stage_humi_pRH": "3.1f", "humi_temp_C": "3.1f", "stage_temp_C": "3.1f"}
         self._f = filename.open('w', newline="")
         self._writer = csv.DictWriter(
             self._f, fieldnames=self._names, delimiter="\t")

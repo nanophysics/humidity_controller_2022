@@ -54,11 +54,17 @@ class Pico:
     def get_measurement(self, average_n = 1) -> dict:
         humidityRH = self.fe.eval(f"micropython_logic.get_measurement(average_n = {average_n:d})")
         return eval(humidityRH)
-
-    def set_fan_intensity(self, intensity_K: float) -> None:
+    
+    def set_fan_circ_intensity(self, intensity_K: float) -> None:
         assert isinstance(intensity_K, float)
         str_value = self.fe.eval(
-            f"micropython_logic.set_fan_intensity({intensity_K:0.2f})"
+            f"micropython_logic.set_fan_circ_intensity({intensity_K:0.2f})"
+        )
+
+    def set_fan_hum_intensity(self, intensity_K: float) -> None:
+        assert isinstance(intensity_K, float)
+        str_value = self.fe.eval(
+            f"micropython_logic.set_fan_hum_intensity({intensity_K:0.2f})"
         )
         #value = float(str_value)
         # return value
@@ -142,17 +148,11 @@ class Window:
 
         def cb(*args):
             callback(on=self.controller_on)
-
         self._var_controller.trace_add("write", cb)
 
     def callback_circ(self, callback):
-        """
-        The controller registers a callback
-        """
-
         def cb(*args):
             callback(on=self.circ_on)
-
         self._var_circ.trace_add("write", cb)
 
     def add_check(self, text):
@@ -179,23 +179,26 @@ class Controller:
         window.callback_controller(callback=self._button_pressed_controller)
         window.callback_circ(callback=self._button_pressed_circ)
 
-        self._window.entry_setRH.value = 10.0
-        self._window.entry_kp.value = 0.05
-        self._window.entry_ki.value = 0.01
+        self._window.entry_setRH.value = 60.0
+        self._window.entry_kp.value = 3.0
+        self._window.entry_ki.value = 0.2
         self._window.entry_kd.value = 0.0
 
         self.pid = simple_pid.PID(sample_time=0.6, output_limits=(
-            0.0, 100.0), proportional_on_measurement=False, setpoint = self._window.entry_setRH.value)
+            10.0, 100.0), proportional_on_measurement=False, setpoint = self._window.entry_setRH.value)
+
+        self._pico.set_fan_circ_intensity(0.0) 
 
         # Start the controller
         window.timer(interval_ms=1000, callback=self._control)
+
 
     def _control(self):
         # print(self._window.entry_kd.get())
         #value = self._pico.set_fan_intensity(2.1)
         #print(f"Control 2.1->{value}")
         self._csv.time_s=int(time.time() - self._starttime)
-        _dict = self._pico.get_measurement()
+        _dict = self._pico.get_measurement(average_n = 5)
         self._csv.fan=self.fan_intensity
         self._csv.set_humi_pRH=self.pid.setpoint
         self._csv.humi_humi_pRH=float(_dict.get('humi_humi_pRH'))
@@ -209,18 +212,17 @@ class Controller:
         if not self._window.controller_on:
             #self.pid.set_auto_mode(False)
             self.fan_intensity=0.0
-            self._pico.set_fan_intensity(0.0)
-            self._pico.leds(color=(255,0,0))
+            self._pico.set_fan_hum_intensity(0.0)
+            self._pico.leds(color=(100,0,0))
         else:
             #self.pid.set_auto_mode(True, last_output=0.0)
             self.fan_intensity = self.pid(self._csv.humi_humi_pRH)
             print(self.fan_intensity)
-            #print(self.pid(self._csv.humi_humi_pRH))
-            #print(self.pid)
-            #print(self.pid(44.3))
-            #print(self._csv.humi_humi_pRH)
-            self._pico.set_fan_intensity(self.fan_intensity)
-            self._pico.leds(color=(0,255,0))
+            self._pico.set_fan_hum_intensity(self.fan_intensity)
+            if abs(self._csv.humi_humi_pRH - self._csv.humi_humi_pRH) < 2.0:
+                self._pico.leds(color=(0,100,0))
+            else:
+                self._pico.leds(color=(0,0,100))    
 
 
     def _button_pressed_controller(self, on: bool):
@@ -239,7 +241,14 @@ class Controller:
             print('blabliblaenabled')
 
     def _button_pressed_circ(self, on: bool):
-        print(f"circ {on}")
+        print(f"Fan circulation {on}")
+        if on:
+            self._pico.set_fan_circ_intensity(45.0)
+            print('Circulation Fan on')
+        else:
+            self._pico.set_fan_circ_intensity(0.0)    
+            print('Circulation Fan off')
+
 
 
 def main():

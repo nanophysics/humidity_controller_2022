@@ -5,7 +5,7 @@ import neo_led
 import sht31
 import pwm
 
-real_setup = False
+real_setup = True
 
 def pyboard_init():
     if real_setup:
@@ -23,8 +23,8 @@ def get_measurement(average_n = 1):
         dict = {
             'humi_temp_C': sht31.sensors.temperature_C_a,
             'humi_humi_pRH': sht31.sensors.humidity_percent_a,
-            'stage_temp_C': sht31.sensors.temperature_C_a,
-            'stage_humi_pRH': sht31.sensors.humidity_percent_a,
+            'stage_temp_C': sht31.sensors.temperature_C_b,
+            'stage_humi_pRH': sht31.sensors.humidity_percent_b,
         }
     else:
         dict = {
@@ -35,8 +35,12 @@ def get_measurement(average_n = 1):
         }
     return dict
 
-def set_fan_intensity(value):
-    if real_setup:
-        pwm.fans.set_intensity(value/100.0)
+def set_fan_hum_intensity(value):
+    pwm.fans_hum.set_fan_hum_intensity(value/100.0)
 
-
+def set_fan_circ_intensity(value):
+    pwm.fan_circ.set_intensity(value/100.0)
+    if value < 0.1:
+        pwm.fan_circ_on_off.set_intensity(1.0)
+    else:
+        pwm.fan_circ_on_off.set_intensity(0.0) # Schaltet sonst nicht komplett aus. Bastel.
